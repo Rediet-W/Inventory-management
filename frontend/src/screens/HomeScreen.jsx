@@ -1,6 +1,10 @@
-import Hero from '../components/Hero';
+import HomeTop from "../components/HomeTop";
 
-const HomeScreen = () => {
-  return <Hero />;
+const HomePage = () => {
+  return (
+    <>
+      <HomeTop />
+    </>
+  );
 };
-export default HomeScreen;
+export default HomePage;
