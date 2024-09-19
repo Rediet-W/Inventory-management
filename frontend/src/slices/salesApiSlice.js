@@ -27,6 +27,10 @@ export const salesApiSlice = createApi({
         method: "DELETE",
       }),
     }),
+    getSalesByDateRange: builder.query({
+      query: ({ startDate, endDate }) =>
+        `/sales/range?startDate=${startDate}&endDate=${endDate}`,
+    }),
     // Edit a sale
     editSale: builder.mutation({
       query: ({ saleId, saleData }) => ({
@@ -45,4 +49,5 @@ export const {
   useDeleteSaleMutation,
   useEditSaleMutation,
   useGetAllSalesQuery,
+  useGetSalesByDateRangeQuery,
 } = salesApiSlice;

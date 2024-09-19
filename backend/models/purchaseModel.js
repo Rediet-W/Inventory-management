@@ -10,13 +10,21 @@ const PurchaseSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  productName: {
+    type: String, // New field to store the product name
+    required: true,
+  },
   buyingPrice: {
     type: Number,
     required: true,
   },
   purchaseDate: {
     type: Date,
-    default: Date.now,
+    required: true,
+  },
+  userName: {
+    type: String,
+    required: true,
   },
 });
 const Purchase = mongoose.model("Purchase", PurchaseSchema);

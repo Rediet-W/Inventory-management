@@ -2,12 +2,17 @@ import mongoose from "mongoose";
 
 const RequestedProductSchema = new mongoose.Schema({
   product: {
-    type: String, // Changed from ObjectId to String
+    type: String,
     required: true,
   },
   description: {
     type: String,
     required: true,
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    default: 1, // Add default quantity
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -20,4 +25,5 @@ const RequestedProduct = mongoose.model(
   "RequestedProduct",
   RequestedProductSchema
 );
+
 export default RequestedProduct;

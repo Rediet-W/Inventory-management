@@ -18,8 +18,12 @@ const userSchema = mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["user", "admin"],
+      enum: ["user", "admin", "superAdmin"],
       default: "user",
+    },
+    isPrimaryAdmin: {
+      type: Boolean,
+      default: false, // Default for regular admins
     },
   },
   {

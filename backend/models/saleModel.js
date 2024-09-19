@@ -7,6 +7,10 @@ const saleSchema = mongoose.Schema(
       ref: "Product",
       required: true,
     },
+    productName: {
+      type: String, // New field to store the product name
+      required: true,
+    },
     quantitySold: {
       type: Number,
       required: true,
@@ -18,6 +22,10 @@ const saleSchema = mongoose.Schema(
     saleDate: {
       type: Date,
       default: Date.now,
+    },
+    userName: {
+      type: String, // New field to store the user's name
+      required: true,
     },
   },
   {

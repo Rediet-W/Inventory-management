@@ -31,7 +31,7 @@ const createProduct = asyncHandler(async (req, res) => {
 
   const product = new Product({
     name,
-    quantity,
+    quantity: 0,
     buyingPrice,
     sellingPrice,
   });

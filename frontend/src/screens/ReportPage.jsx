@@ -1,22 +1,28 @@
-import React, { useState, useMemo } from "react";
-import {
-  useGetSalesByDateRangeQuery,
-  useGetPurchasesByDateRangeQuery,
-} from "../slices/summaryApiSlice";
-import { Form } from "react-bootstrap";
+import React, { useState, useMemo, useEffect } from "react";
+import { Form, Button, Card, Row, Col, Table, Alert } from "react-bootstrap";
+import { useGetSalesByDateRangeQuery } from "../slices/salesApiSlice";
+import { FaDownload } from "react-icons/fa"; // Download icon for better UI
 import { saveAs } from "file-saver"; // To trigger file download
+import { useGetPurchasesByDateRangeQuery } from "../slices/purchaseApiSlice";
 
 const ReportPage = () => {
   const [startDate, setStartDate] = useState(""); // Start date filter
   const [endDate, setEndDate] = useState(""); // End date filter
+  const [applyFilters, setApplyFilters] = useState(false); // To track when to apply filters
+  const [errorMessage, setErrorMessage] = useState(""); // Validation error message
 
-  // Fetch sales data (Credit)
-  const { data: sales } = useGetSalesByDateRangeQuery({ startDate, endDate });
-  // Fetch product data (Debit)
-  const { data: purchases } = useGetPurchasesByDateRangeQuery({
-    startDate,
-    endDate,
-  });
+  // Fetch sales data (Credit) only after filters are applied
+  const { data: sales, refetch: refetchSales } = useGetSalesByDateRangeQuery(
+    { startDate, endDate },
+    { skip: !applyFilters } // Skip query until filters are applied
+  );
+
+  // Fetch purchases data (Debit) only after filters are applied
+  const { data: purchases, refetch: refetchPurchases } =
+    useGetPurchasesByDateRangeQuery(
+      { startDate, endDate },
+      { skip: !applyFilters } // Skip query until filters are applied
+    );
 
   // Calculate total Debit (Purchases)
   const totalDebit = useMemo(() => {
@@ -40,109 +46,150 @@ const ReportPage = () => {
 
   // Compute balance: Credit - Debit
   const balance = useMemo(
-    () => totalDebit - totalCredit,
-    [totalDebit, totalCredit]
+    () => totalCredit - totalDebit,
+    [totalCredit, totalDebit]
   );
 
-  // Combine sales and purchases data for the table
+  // Combine sales and purchases data for the table and sort by date (recent at bottom)
   const reportData = useMemo(() => {
     const reportRows = [];
 
-    // Add purchases (Debit)
-    purchases?.forEach((product) => {
+    purchases?.forEach((purchase) => {
       reportRows.push({
-        date: new Date(product.date).toLocaleDateString(),
-        productName: product.name,
-        debit: product.buyingPrice * product.quantity,
-        credit: null, // No credit for purchases
+        date: new Date(purchase.purchaseDate).toISOString().split("T")[0],
+        productName: purchase?.productName || "Unknown Product",
+        debit: purchase.buyingPrice * purchase.quantity,
+        credit: null,
       });
     });
 
-    // Add sales (Credit)
     sales?.forEach((sale) => {
       reportRows.push({
-        date: new Date(sale.saleDate).toLocaleDateString(),
-        productName: sale.product.name,
-        debit: null, // No debit for sales
+        date: new Date(sale.saleDate).toISOString().split("T")[0],
+        productName: sale?.productName || "Unknown Product",
+        debit: null,
         credit: sale.sellingPrice * sale.quantitySold,
       });
     });
 
-    return reportRows;
+    // Sort rows by date (most recent at the bottom)
+    return reportRows.sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [purchases, sales]);
 
   // Convert report data to CSV format
   const convertReportToCSV = () => {
-    const csvRows = [
-      ["Date", "Product Name", "Debit (ETB)", "Credit (ETB)"], // CSV headers
-      ...reportData.map((row) => [
+    const header = `"የአየር ጤና አንቀጸ ብርሃን ቅድስት ኪዳነምሕረት ቤተክርስቲያን የፍኖተ ጽድቅ ሰንበት ትምህርት ቤት ንዋየ ቅድሳት መሸጫ ሱቅ"\n"GL report"\n"Period: ${startDate} to ${endDate}"\n\nDate,Product Name,Debit (ETB),Credit (ETB)\n`;
+
+    const rows = reportData
+      .map((row) => [
         row.date,
         row.productName,
-        row.debit !== null ? row.debit : "", // Only show debit if not null
-        row.credit !== null ? row.credit : "", // Only show credit if not null
-      ]),
-      ["", "Balance", balance, ""], // Balance row in CSV
-    ];
+        row.debit !== null ? row.debit : "",
+        row.credit !== null ? row.credit : "",
+      ])
+      .join("\n");
 
-    return csvRows.map((row) => row.join(",")).join("\n"); // Combine into CSV format
+    const balanceRow = `\n,Balance,${balance} ETB,\n`;
+    return header + rows + balanceRow;
   };
 
-  // Trigger download of CSV report
   const handleDownload = () => {
-    const csvData = convertReportToCSV();
-    const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
-    saveAs(blob, "report.csv");
+    const csvContent = convertReportToCSV();
+
+    // Add BOM (Byte Order Mark) for UTF-8 encoding to support Amharic characters
+    const utf8BOM = "\uFEFF";
+
+    // Create a Blob object with the CSV content and the BOM
+    const blob = new Blob([utf8BOM + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    // Trigger the download using file-saver
+    saveAs(blob, "የፍኖተ_ጽድቅ_ሱቅ_ሪፖርት.csv");
+  };
+  // Handle filter application
+  const handleApplyFilters = () => {
+    if (!startDate || !endDate) {
+      setErrorMessage("Both start and end dates are required.");
+    } else if (new Date(startDate) > new Date(endDate)) {
+      setErrorMessage("Start date cannot be later than end date.");
+    } else {
+      setErrorMessage("");
+      setApplyFilters(true);
+    }
   };
 
   return (
     <div className="container mt-4">
-      <h1 className="text-center mb-4">Report Page</h1>
+      <h1 className="text-center mb-4 fw-bold">Financial Report</h1>
 
       {/* Date Filters */}
-      <div className="d-flex justify-content-center mb-4">
+      <Card className="p-4 mb-4 shadow-sm">
         <Form>
-          <Form.Group className="me-2">
-            <Form.Label>Start Date</Form.Label>
-            <Form.Control
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </Form.Group>
-          <Form.Group>
-            <Form.Label>End Date</Form.Label>
-            <Form.Control
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </Form.Group>
+          <Row className="align-items-center">
+            <Col md={4}>
+              <Form.Group controlId="startDate">
+                <Form.Label>Start Date</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={4}>
+              <Form.Group controlId="endDate">
+                <Form.Label>End Date</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={4} className="text-end">
+              <Button
+                variant="primary"
+                className="mt-3"
+                onClick={handleApplyFilters}
+              >
+                Apply Filters
+              </Button>
+            </Col>
+          </Row>
         </Form>
-      </div>
+      </Card>
+
+      {/* Display Error Message */}
+      {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
 
       {/* Report Summary */}
-      <div className="card text-center mb-4">
-        <div className="card-body">
-          <h5 className="card-title">Report Summary</h5>
-          <p className="card-text">
-            Total Debit: <strong>{totalDebit} ETB</strong> <br />
-            Total Credit: <strong>{totalCredit} ETB</strong> <br />
-            Balance: <strong>{balance} ETB</strong>
-          </p>
-          <button className="btn btn-primary" onClick={handleDownload}>
-            Download Report CSV
-          </button>
-        </div>
+      <Card className="text-center mb-4 shadow">
+        <Card.Body>
+          <Card.Title>Report Summary</Card.Title>
+          <Card.Text>
+            <strong>Total Debit:</strong> {totalDebit} ETB <br />
+            <strong>Total Credit:</strong> {totalCredit} ETB <br />
+            <strong>Balance:</strong> {balance} ETB
+          </Card.Text>
+        </Card.Body>
+      </Card>
+
+      {/* Download Button */}
+      <div className="text-end mb-3">
+        <Button variant="success" onClick={handleDownload}>
+          <FaDownload /> Download Report
+        </Button>
       </div>
 
       {/* Report Table */}
-      <table className="table table-striped">
-        <thead>
+      <Table striped bordered hover className="shadow-sm">
+        <thead className="table-dark">
           <tr>
-            <th scope="col">Date</th>
-            <th scope="col">Product Name</th>
-            <th scope="col">Debit (ETB)</th>
-            <th scope="col">Credit (ETB)</th>
+            <th>Date</th>
+            <th>Product Name</th>
+            <th>Debit (ETB)</th>
+            <th>Credit (ETB)</th>
           </tr>
         </thead>
         <tbody>
@@ -167,7 +214,7 @@ const ReportPage = () => {
             <td></td>
           </tr>
         </tbody>
-      </table>
+      </Table>
     </div>
   );
 };

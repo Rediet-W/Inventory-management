@@ -9,6 +9,8 @@ import productRoutes from "./routes/productRoutes.js";
 import requestedProductRoutes from "./routes/requestedProductRoutes.js"; // Import requested products routes
 import saleRoute from "./routes/saleRoutes.js"; // Import transaction routes
 import purchaseRoute from "./routes/purchaseRoutes.js"; // Import purchase routes
+import User from "./models/userModel.js";
+import bcrypt from "bcryptjs";
 
 dotenv.config();
 

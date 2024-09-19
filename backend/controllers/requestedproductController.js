@@ -31,22 +31,52 @@ const createRequestedProduct = asyncHandler(async (req, res) => {
   res.status(201).json(createdRequestedProduct);
 });
 
-// @desc    Delete a requested product
+/// @desc    Delete a requested product
 // @route   DELETE /api/requested-products/:id
 // @access  Private
 const deleteRequestedProduct = asyncHandler(async (req, res) => {
+  const requestedProduct = await RequestedProduct.findById(req.params.id);
+
+  if (!requestedProduct) {
+    res.status(404);
+    throw new Error("Requested product not found");
+  }
+
+  // Check if the user is authorized to delete the product
+  if (
+    requestedProduct.user.toString() !== req.user._id.toString() &&
+    req.user.role !== "admin"
+  ) {
+    res.status(403);
+    throw new Error("Not authorized to delete this product");
+  }
+
+  await requestedProduct.deleteOne();
+  res.json({ message: "Requested product removed" });
+});
+
+// @desc    Update requested product quantity
+// @route   PUT /api/requested-products/:id
+// @access  Private
+const updateRequestedProduct = asyncHandler(async (req, res) => {
   const requestedProduct = await RequestedProduct.findById(req.params.id);
 
   if (
     requestedProduct &&
     requestedProduct.user.toString() === req.user._id.toString()
   ) {
-    await RequestedProduct.deleteOne({ _id: req.params.id }); // Replaced .remove() with deleteOne()
-    res.json({ message: "Requested product removed" });
+    requestedProduct.quantity = req.body.quantity || requestedProduct.quantity;
+    const updatedProduct = await requestedProduct.save();
+    res.json(updatedProduct);
   } else {
     res.status(404);
     throw new Error("Requested product not found or not authorized");
   }
 });
 
-export { getRequestedProducts, createRequestedProduct, deleteRequestedProduct };
+export {
+  getRequestedProducts,
+  createRequestedProduct,
+  deleteRequestedProduct,
+  updateRequestedProduct,
+};

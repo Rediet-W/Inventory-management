@@ -62,7 +62,7 @@ const InventoryPage = () => {
                 active={filter === "lowStock"}
                 onClick={() => setFilter("lowStock")}
               >
-                Nearly Out of Stock
+                Low Stock
               </Nav.Link>
             </Nav.Item>
           </Nav>
@@ -82,9 +82,7 @@ const InventoryPage = () => {
       </Row>
 
       {/* Product List Table */}
-      <h2>
-        {filter === "all" ? "All Products" : "Nearly Out of Stock Products"}
-      </h2>
+      <h2>{filter === "all" ? "All Products" : "Low stock"}</h2>
       <Table striped bordered hover responsive className="table-sm">
         <thead>
           <tr>

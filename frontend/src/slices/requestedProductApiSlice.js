@@ -25,6 +25,15 @@ export const requestedProductApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["RequestedProduct"],
     }),
+    // Add update requested product mutation
+    updateRequestedProduct: builder.mutation({
+      query: ({ id, quantity }) => ({
+        url: `${REQUESTED_PRODUCTS_URL}/${id}`,
+        method: "PUT",
+        body: { quantity }, // Sending only the quantity to update
+      }),
+      invalidatesTags: ["RequestedProduct"],
+    }),
   }),
 });
 
@@ -32,4 +41,5 @@ export const {
   useGetRequestedProductsQuery,
   useCreateRequestedProductMutation,
   useDeleteRequestedProductMutation,
+  useUpdateRequestedProductMutation, // Export the new mutation
 } = requestedProductApiSlice;

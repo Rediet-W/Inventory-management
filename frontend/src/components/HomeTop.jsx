@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, Row, Col } from "react-bootstrap";
+import { Card, Col } from "react-bootstrap";
 import { useGetProductsQuery } from "../slices/productApiSlice";
 
 const HomeTop = () => {
@@ -21,37 +21,36 @@ const HomeTop = () => {
   const lowStockProducts = products.filter((product) => product.quantity < 3);
 
   return (
-    <Row className="mb-4">
+    <Col className="d-flex flex-column align-items-center gap-4">
       {/* Total Store Value Card */}
-      <Col md={4}>
-        <Card className="text-center">
-          <Card.Body>
-            <Card.Title>Total Store Value</Card.Title>
-            <Card.Text>{`${totalStoreValue} ETB`}</Card.Text>
-          </Card.Body>
-        </Card>
-      </Col>
+      <Card className="text-center shadow-sm w-100">
+        <Card.Body>
+          <Card.Title>Total Store Value</Card.Title>
+          <Card.Text className="h4">{`${totalStoreValue} ETB`}</Card.Text>
+        </Card.Body>
+      </Card>
 
       {/* Total Number of Items Card */}
-      <Col md={4}>
-        <Card className="text-center">
-          <Card.Body>
-            <Card.Title>Number of Item Types</Card.Title>
-            <Card.Text>{totalItems}</Card.Text>
-          </Card.Body>
-        </Card>
-      </Col>
+      <Card className="text-center shadow-sm w-100">
+        <Card.Body>
+          <Card.Title>Number of Item Types</Card.Title>
+          <Card.Text className="h4">{totalItems}</Card.Text>
+        </Card.Body>
+      </Card>
 
-      {/* Low Stock Products Card */}
-      <Col md={4}>
-        <Card className="text-center">
-          <Card.Body>
-            <Card.Title>Products with Low Stock</Card.Title>
-            <Card.Text>{lowStockProducts.length}</Card.Text>
-          </Card.Body>
-        </Card>
-      </Col>
-    </Row>
+      {/* Low Stock Items Card */}
+      <Card className="text-center shadow-sm w-100">
+        <Card.Body>
+          <Card.Title>Low Stock Items</Card.Title>
+          <Card.Text className="h4">{lowStockProducts.length}</Card.Text>
+          {lowStockProducts.length > 0 && (
+            <Card.Text className="text-muted">
+              {lowStockProducts.map((product) => product.name).join(", ")}
+            </Card.Text>
+          )}
+        </Card.Body>
+      </Card>
+    </Col>
   );
 };
 

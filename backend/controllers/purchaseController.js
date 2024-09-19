@@ -6,29 +6,33 @@ import Product from "../models/productModel.js";
 // @route   POST /api/purchases
 // @access  Private (admin only)
 const createPurchase = asyncHandler(async (req, res) => {
-  const { productId, quantity, buyingPrice } = req.body;
+  const { productId, quantity, buyingPrice, purchaseDate, userName } = req.body;
 
   // Find the product associated with the purchase
   const product = await Product.findById(productId);
-
+  console.log(product, "product");
   if (!product) {
     res.status(404);
     throw new Error("Product not found");
   }
-
+  console.log(req.user, "user");
   // Create a new purchase
   const newPurchase = new Purchase({
     product: productId,
+    productName: product.name,
     quantity,
     buyingPrice,
+    purchaseDate,
+    userName,
   });
+  console.log(newPurchase, "the");
 
   // Save the purchase
   await newPurchase.save();
 
-  // Update the product quantity
+  // Update the product quantity only in this controller
   product.quantity += quantity;
-  await product.save();
+  await product.save(); // Update the product with the new quantity
 
   res.status(201).json(newPurchase);
 });

@@ -18,6 +18,7 @@ const authUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role, // Include role for checking access
+      isPrimaryAdmin: user.isPrimaryAdmin,
     });
   } else {
     res.status(401);
@@ -51,7 +52,7 @@ const registerUser = asyncHandler(async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
-      role: user.role, // Ensure to send back the role as well
+      role: user.role,
     });
   } else {
     res.status(400).throw(new Error("Invalid user data"));
@@ -81,6 +82,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role, // Include the role in profile
+      isPrimaryAdmin: user.isPrimaryAdmin,
     });
   } else {
     res.status(404);
@@ -119,19 +121,33 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 // @desc    Get all users (Admin only)
 // @route   GET /api/users/admin/users
 // @access  Private/Admin
+// Get all users (Admin only)
 const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await User.find({});
+  const users = await User.find({}, "name email role isPrimaryAdmin"); // Fetch only necessary fields
   res.json(users);
 });
 
 // @desc    Delete user (Admin only)
 // @route   DELETE /api/users/:id
 // @access  Private/Admin
+// Admin should not be able to delete themselves or the primary admin
 const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
 
   if (user) {
-    await user.deleteOne(); // Use deleteOne to remove the user
+    // Check if the user is trying to delete themselves
+    if (user._id.equals(req.user._id)) {
+      res.status(400);
+      throw new Error("Cannot delete your own account");
+    }
+
+    // Check if the user is a primary admin (and restrict deletion if needed)
+    if (user.isPrimaryAdmin) {
+      res.status(400);
+      throw new Error("Cannot delete the primary admin");
+    }
+
+    await user.deleteOne();
     res.json({ message: "User removed" });
   } else {
     res.status(404);

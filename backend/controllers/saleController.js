@@ -30,20 +30,30 @@ const getSalesByDateRange = asyncHandler(async (req, res) => {
 // @route   POST /api/sales
 // @access  Private/User
 const createSale = asyncHandler(async (req, res) => {
-  const { productId, quantitySold } = req.body;
+  const { productId, quantitySold, userName } = req.body;
+
+  // Check if productId and quantitySold are provided
+  if (!productId || !quantitySold) {
+    res.status(400);
+    throw new Error("Product ID and quantity are required");
+  }
 
   const product = await Product.findById(productId);
 
   if (product) {
     if (quantitySold > product.quantity) {
       res.status(400);
-      throw new Error("Not enough stock available");
+      throw new Error(
+        `Not enough stock available. You only have ${product.quantity} units.`
+      );
     }
 
     const sale = new Sale({
       product: productId,
+      productName: product.name,
       quantitySold,
       sellingPrice: product.sellingPrice,
+      userName,
     });
 
     // Save the sale
