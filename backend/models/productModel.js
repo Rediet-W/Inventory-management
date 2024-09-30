@@ -22,6 +22,10 @@ const productSchema = mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    batchNumber: {
+      type: String,
+      required: true,
+    },
   },
   {
     timestamps: true,

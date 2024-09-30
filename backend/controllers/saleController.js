@@ -1,6 +1,6 @@
 import asyncHandler from "express-async-handler";
-import Product from "../models/productModel.js";
 import Sale from "../models/saleModel.js";
+import Shop from "../models/shopModel.js";
 
 // @desc    Get sales for a specific date range
 // @route   GET /api/sales/range?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
@@ -26,53 +26,58 @@ const getSalesByDateRange = asyncHandler(async (req, res) => {
   res.status(200).json(sales);
 });
 
-// @desc    Create a new sale and update product quantity
+// @desc    Create a new sale and update shop product quantity
 // @route   POST /api/sales
 // @access  Private/User
 const createSale = asyncHandler(async (req, res) => {
-  const { productId, quantitySold, userName } = req.body;
+  const { shopProductId, quantitySold, userName } = req.body;
 
-  // Check if productId and quantitySold are provided
-  if (!productId || !quantitySold) {
+  // Check if shopProductId, quantitySold, and userName are provided
+  if (!shopProductId || !quantitySold || !userName) {
     res.status(400);
-    throw new Error("Product ID and quantity are required");
+    throw new Error("Shop product ID, quantity, and user name are required");
   }
 
-  const product = await Product.findById(productId);
+  // Find the product in the shop by ID
+  const shopProduct = await Shop.findById(shopProductId);
 
-  if (product) {
-    if (quantitySold > product.quantity) {
+  if (shopProduct) {
+    // Check if the requested sale quantity is available in the shop
+    if (quantitySold > shopProduct.quantity) {
       res.status(400);
       throw new Error(
-        `Not enough stock available. You only have ${product.quantity} units.`
+        `Not enough stock available in the shop. You only have ${shopProduct.quantity} units.`
       );
     }
 
+    // Create a new sale
     const sale = new Sale({
-      product: productId,
-      productName: product.name,
+      product: shopProductId, // Reference to the shop product
+      productName: shopProduct.productName,
       quantitySold,
-      sellingPrice: product.sellingPrice,
+      sellingPrice: shopProduct.sellingPrice,
       userName,
+      batchNumber: shopProduct.batchNumber,
     });
 
-    // Save the sale
+    // Save the sale record
     const createdSale = await sale.save();
 
-    // Update the product quantity
-    product.quantity -= quantitySold;
+    // Update the shop product quantity
+    shopProduct.quantity -= quantitySold;
 
-    // Delete product if quantity reaches zero
-    if (product.quantity === 0) {
-      await product.deleteOne();
+    // If the shop product quantity reaches zero, delete the product from the shop
+    if (shopProduct.quantity === 0) {
+      await shopProduct.deleteOne();
     } else {
-      await product.save();
+      await shopProduct.save(); // Save the updated shop product with reduced quantity
     }
 
+    // Respond with the created sale
     res.status(201).json(createdSale);
   } else {
     res.status(404);
-    throw new Error("Product not found");
+    throw new Error("Shop product not found");
   }
 });
 

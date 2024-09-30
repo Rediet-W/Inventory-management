@@ -5,15 +5,14 @@ import {
 } from "../slices/userApiSlice";
 import { useSelector } from "react-redux";
 import Loader from "../components/Loader"; // Ensure Loader component exists and is correctly imported
+import { FaTrashAlt } from "react-icons/fa"; // Import an icon for delete
 
 const EmployeesPage = () => {
-  // Fetch logged-in user's role and isPrimaryAdmin flag from the state (assumes this is in your Redux store)
-  const { userInfo } = useSelector((state) => state.auth);
-  // Fetch users
-  const { data: users, isLoading, isError, error } = useGetUsersQuery();
+  const { userInfo } = useSelector((state) => state.auth); // Fetch logged-in user's role and isPrimaryAdmin flag from the state
 
-  // Mutation for deleting a user
-  const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
+  const { data: users, isLoading, isError, error } = useGetUsersQuery(); // Fetch users
+
+  const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation(); // Mutation for deleting a user
 
   const handleDelete = async (userId) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
@@ -34,11 +33,15 @@ const EmployeesPage = () => {
     ); // Display error message using Bootstrap alert
 
   return (
-    <div>
-      <h2>Employees</h2>
-      {isDeleting && <Loader />} {/* Show loader during delete */}
-      <table className="table">
-        <thead>
+    <div className="container mt-4">
+      <h2 className="text-center mb-4">Employees Management</h2>
+
+      {/* Show loader during delete */}
+      {isDeleting && <Loader />}
+
+      {/* Employees Table */}
+      <table className="table table-striped table-hover table-bordered shadow-sm">
+        <thead className="table-dark">
           <tr>
             <th>Name</th>
             <th>Email</th>
@@ -57,8 +60,9 @@ const EmployeesPage = () => {
                   <button
                     onClick={() => handleDelete(user._id)}
                     className="btn btn-danger btn-sm"
+                    style={{ display: "flex", alignItems: "center" }}
                   >
-                    Delete
+                    <FaTrashAlt className="me-2" /> Delete
                   </button>
                 </td>
               )}
@@ -66,6 +70,13 @@ const EmployeesPage = () => {
           ))}
         </tbody>
       </table>
+
+      {/* No users message */}
+      {users.length === 0 && (
+        <div className="alert alert-warning text-center">
+          No employees found.
+        </div>
+      )}
     </div>
   );
 };

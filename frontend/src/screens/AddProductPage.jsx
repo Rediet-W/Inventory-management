@@ -29,6 +29,7 @@ const AddProductPage = () => {
   const [sellingPrice, setSellingPrice] = useState("");
   const [quantity, setQuantity] = useState("");
   const [date, setDate] = useState("");
+  const [batchNumber, setBatchNumber] = useState(""); // New state for batch number
 
   const [createProduct, { isLoading: productLoading, error: productError }] =
     useCreateProductMutation();
@@ -47,13 +48,13 @@ const AddProductPage = () => {
         quantity: Number(quantity),
         buyingPrice: Number(buyingPrice),
         sellingPrice: Number(sellingPrice),
+        batchNumber, // Add batch number to product data
       };
 
       const createdProduct = await createProduct(productData).unwrap();
       const formattedDate = new Date(date).toISOString();
 
       try {
-        console.log(userInfo?.name, "dp");
         // Then, use the created product's ID to create the purchase
         const purchaseData = {
           productId: createdProduct._id, // Use productId from created product
@@ -163,6 +164,18 @@ const AddProductPage = () => {
                     </Form.Group>
                   </Col>
                 </Row>
+
+                {/* Batch Number */}
+                <Form.Group controlId="batchNumber" className="mb-3">
+                  <Form.Label>Batch Number</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter batch number"
+                    value={batchNumber}
+                    onChange={(e) => setBatchNumber(e.target.value)}
+                    required
+                  />
+                </Form.Group>
 
                 {/* Submit Button */}
                 <Button

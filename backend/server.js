@@ -11,6 +11,7 @@ import saleRoute from "./routes/saleRoutes.js"; // Import transaction routes
 import purchaseRoute from "./routes/purchaseRoutes.js"; // Import purchase routes
 import User from "./models/userModel.js";
 import bcrypt from "bcryptjs";
+import shopRoute from "./routes/shopRoutes.js"; // Import shop routes
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ app.use("/api/products", productRoutes); // Product routes
 app.use("/api/requested-products", requestedProductRoutes); // Requested products routes
 app.use("/api/sales", saleRoute); // Transaction routes
 app.use("/api/purchases", purchaseRoute); // Purchase routes
+app.use("/api/shop", shopRoute); // Shop routes
 
 // Serve frontend assets in production
 if (process.env.NODE_ENV === "production") {

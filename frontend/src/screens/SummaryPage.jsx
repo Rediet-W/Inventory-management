@@ -3,8 +3,9 @@ import { useGetSalesByDateRangeQuery } from "../slices/salesApiSlice";
 import { useGetPurchasesByDateRangeQuery } from "../slices/purchaseApiSlice";
 import { useGetProductsQuery } from "../slices/productApiSlice";
 import { Nav, Tab, Form, Button, Alert, Card, Row, Col } from "react-bootstrap";
-import { saveAs } from "file-saver"; // A package to trigger file download
 import { FaDownload } from "react-icons/fa";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const SummaryPage = () => {
   const [startDate, setStartDate] = useState("");
@@ -61,52 +62,68 @@ const SummaryPage = () => {
     }
   }, [startDate, endDate]);
 
-  // Helper function to convert sales data to CSV format with the title and period
-  // Helper function to convert sales data to CSV format with the title and period centered in the 3rd column
-  const convertSalesToCSV = () => {
-    const header = `,,,\n,,,\n"የአየር ጤና አንቀጸ ብርሃን ቅድስት ኪዳነምሕረት ቤተክርስቲያን የፍኖተ ጽድቅ ሰንበት ትምህርት ቤት ንዋየ ቅድሳት መሸጫ ሱቅ"\n,,,\nSales Report\n,,,\nPeriod: ${startDate} to ${endDate}\n\nDate,Product Name,Selling Price,Quantity Sold,Sold by\n`;
+  // Load Amharic font in jsPDF
+  const downloadPDF = async (id, fileName) => {
+    try {
+      const input = document.getElementById(id);
+      if (!input) {
+        throw new Error(`Element with id ${id} not found`);
+      }
 
-    const rows = sales
-      .map((sale) => {
-        const formattedDate = new Date(sale.saleDate)
-          .toISOString()
-          .split("T")[0];
-        return `${formattedDate},${sale?.productName || "Unknown Product"},${
-          sale.sellingPrice
-        },${sale.quantitySold},${sale?.userName || "Unknown"}`;
-      })
-      .join("\n");
+      // Convert the content of the table into a canvas image
+      const canvas = await html2canvas(input);
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgWidth = 210; // Full page width
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
 
-    return header + rows;
+      // Add the image from '/image' at the top (logo or other relevant image)
+      const logo = await loadImage("/image.png"); // Make sure to provide the correct path
+      pdf.addImage(logo, "PNG", 10, 10, 40, 40); // Add image at the top left
+
+      // Add the period next to the image
+      pdf.setFontSize(12);
+      pdf.text(`Period: ${startDate} to ${endDate}`, 55, 20);
+
+      // Add some margin between the header and the table content
+      pdf.setFontSize(16);
+      pdf.setFont("helvetica", "bold");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const text = tabKey === "sell" ? "Sales Breakdown" : "Purchase Breakdown";
+      const textWidth = pdf.getTextWidth(text);
+      const textX = (pageWidth - textWidth) / 2;
+      pdf.text(text, textX, 60); // Add header
+
+      // Add the table content with padding/margin
+      pdf.addImage(imgData, "PNG", 10, 70, imgWidth - 20, imgHeight); // Add some margin around the table
+
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 10, position, imgWidth - 20, imgHeight); // Add margin for subsequent pages
+        heightLeft -= pageHeight;
+      }
+
+      // Save the PDF
+      pdf.save(fileName);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    }
   };
 
-  // Helper function to convert purchases data to CSV format with the title and period centered in the 3rd column
-  const convertPurchasesToCSV = () => {
-    const header = `,,,\n,,,\n"የአየር ጤና አንቀጸ ብርሃን ቅድስት ኪዳነምሕረት ቤተክርስቲያን የፍኖተ ጽድቅ ሰንበት ትምህርት ቤት ንዋየ ቅድሳት መሸጫ ሱቅ"\n,,,\nPurchases Report\n,,,\nPeriod: ${startDate} to ${endDate}\n\nDate,Product Name,Buying Price,Quantity,Purchased by\n`;
-
-    const rows = purchases
-      .map((purchase) => {
-        const formattedDate = new Date(purchase.purchaseDate)
-          .toISOString()
-          .split("T")[0];
-        return `${formattedDate},${
-          purchase?.productName || "Unknown Product"
-        },${purchase.buyingPrice},${purchase.quantity},${
-          purchase?.userName || "Unknown"
-        }`;
-      })
-      .join("\n");
-
-    return header + rows;
-  };
-
-  // Helper function to handle file download
-  const handleDownload = (csvContent, fileName) => {
-    const utf8BOM = "\uFEFF"; // Add BOM for UTF-8 encoding
-    const blob = new Blob([utf8BOM + csvContent], {
-      type: "text/csv;charset=utf-8;",
+  // Helper function to load the image
+  const loadImage = (src) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => resolve(img);
+      img.onerror = (err) => reject(err);
     });
-    saveAs(blob, fileName);
   };
 
   return (
@@ -162,7 +179,7 @@ const SummaryPage = () => {
                 variant="success"
                 size="sm"
                 className="ms-2"
-                onClick={() => handleDownload(convertSalesToCSV(), "sales.csv")}
+                onClick={() => downloadPDF("sales-section", "sales-report.pdf")}
               >
                 <FaDownload />
               </Button>
@@ -176,7 +193,7 @@ const SummaryPage = () => {
                 size="sm"
                 className="ms-2"
                 onClick={() =>
-                  handleDownload(convertPurchasesToCSV(), "purchases.csv")
+                  downloadPDF("purchases-section", "purchases-report.pdf")
                 }
               >
                 <FaDownload />
@@ -191,7 +208,7 @@ const SummaryPage = () => {
             {salesLoading ? (
               <p>Loading sales...</p>
             ) : (
-              <>
+              <div id="sales-section">
                 {/* Sales Table */}
                 <table className="table table-hover">
                   <thead className="table-dark">
@@ -200,6 +217,7 @@ const SummaryPage = () => {
                       <th scope="col">Product Name</th>
                       <th scope="col">Selling Price</th>
                       <th scope="col">Quantity Sold</th>
+                      <th scope="col">Amount</th> {/* New column */}
                       <th scope="col">Sold by</th>
                     </tr>
                   </thead>
@@ -212,18 +230,21 @@ const SummaryPage = () => {
                         <td>{sale?.productName || "Unknown Product"}</td>
                         <td>{sale.sellingPrice} ETB</td>
                         <td>{sale.quantitySold}</td>
+                        <td>
+                          {sale.quantitySold * sale.sellingPrice} ETB
+                        </td>{" "}
+                        {/* Amount */}
                         <td>{sale?.userName || "Unknown"}</td>
                       </tr>
                     ))}
                     <tr className="fw-bold">
-                      <td colSpan="2">Total</td>
+                      <td colSpan="4">Total</td>
                       <td>{totalSales} ETB</td>
-                      <td></td>
                       <td></td>
                     </tr>
                   </tbody>
                 </table>
-              </>
+              </div>
             )}
           </Tab.Pane>
 
@@ -232,7 +253,7 @@ const SummaryPage = () => {
             {purchasesLoading || productsLoading ? (
               <p>Loading purchases...</p>
             ) : (
-              <>
+              <div id="purchases-section">
                 {/* Purchases Table */}
                 <table className="table table-hover">
                   <thead className="table-dark">
@@ -241,6 +262,7 @@ const SummaryPage = () => {
                       <th scope="col">Product Name</th>
                       <th scope="col">Buying Price</th>
                       <th scope="col">Quantity</th>
+                      <th scope="col">Amount</th> {/* New column */}
                       <th scope="col">Purchased by</th>
                     </tr>
                   </thead>
@@ -257,18 +279,21 @@ const SummaryPage = () => {
                         <td>{purchase?.productName || "Unknown Product"}</td>
                         <td>{purchase.buyingPrice} ETB</td>
                         <td>{purchase.quantity}</td>
+                        <td>
+                          {purchase.quantity * purchase.buyingPrice} ETB
+                        </td>{" "}
+                        {/* Amount */}
                         <td>{purchase?.userName || "Unknown"}</td>
                       </tr>
                     ))}
                     <tr className="fw-bold">
-                      <td colSpan="2">Total</td>
+                      <td colSpan="4">Total</td>
                       <td>{totalPurchases} ETB</td>
-                      <td></td>
                       <td></td>
                     </tr>
                   </tbody>
                 </table>
-              </>
+              </div>
             )}
           </Tab.Pane>
         </Tab.Content>

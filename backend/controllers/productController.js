@@ -27,13 +27,14 @@ const getProductById = asyncHandler(async (req, res) => {
 // @route   POST /api/products
 // @access  Private/Admin
 const createProduct = asyncHandler(async (req, res) => {
-  const { name, quantity, buyingPrice, sellingPrice } = req.body;
+  const { name, quantity, buyingPrice, sellingPrice, batchNumber } = req.body;
 
   const product = new Product({
     name,
     quantity: 0,
     buyingPrice,
     sellingPrice,
+    batchNumber,
   });
 
   const createdProduct = await product.save();
@@ -44,7 +45,7 @@ const createProduct = asyncHandler(async (req, res) => {
 // @route   PUT /api/products/:id
 // @access  Private/Admin
 const updateProduct = asyncHandler(async (req, res) => {
-  const { name, quantity, buyingPrice, sellingPrice } = req.body;
+  const { name, quantity, buyingPrice, sellingPrice, batchNumber } = req.body;
 
   const product = await Product.findById(req.params.id);
 
@@ -53,6 +54,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.quantity = quantity || product.quantity;
     product.buyingPrice = buyingPrice || product.buyingPrice;
     product.sellingPrice = sellingPrice || product.sellingPrice;
+    product.batchNumber = batchNumber || product.batchNumber;
 
     const updatedProduct = await product.save();
     res.json(updatedProduct);

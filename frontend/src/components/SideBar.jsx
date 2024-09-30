@@ -3,51 +3,81 @@ import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   FaHome,
-  FaBox,
-  FaUsers,
+  FaStore,
+  FaUserFriends,
   FaClipboardList,
-  FaMoneyCheckAlt,
+  FaShoppingCart,
+  FaBoxOpen,
+  FaChartLine,
   FaBars,
-} from "react-icons/fa"; // Import icons
+} from "react-icons/fa"; // Updated icons to match functionality
 
 const Sidebar = () => {
-  const { userInfo } = useSelector((state) => state.auth); // Fetch user info from Redux state
-  const [isCollapsed, setIsCollapsed] = useState(false); // State to toggle collapse
+  const { userInfo } = useSelector((state) => state.auth);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   if (!userInfo) {
     return null;
   }
+
   return (
     <div
-      className={`d-flex flex-column p-3 bg-light ${
+      className={`d-flex flex-column sidebar ${
         isCollapsed ? "collapsed-sidebar" : ""
       }`}
-      style={{ width: isCollapsed ? "80px" : "250px", height: "100vh" }}
+      style={{
+        width: isCollapsed ? "80px" : "250px",
+        height: "100vh",
+        background: "linear-gradient(180deg, #007bff, #ffcc00)",
+        position: "sticky",
+        top: "0", // Sticky to the top, ensuring no gap
+        left: 0,
+        transition: "width 0.3s",
+        zIndex: 1000,
+      }}
     >
       {/* Toggle button for sidebar */}
       <button
-        className="btn btn-light mb-3 " // Visible only on small screens
+        className="btn btn-light mb-3"
         onClick={() => setIsCollapsed(!isCollapsed)}
+        style={{
+          color: "#fff",
+          fontSize: "20px", // Make it bigger for better visibility
+          background: "transparent", // Transparent background
+        }}
       >
         <FaBars />
       </button>
 
-      {/* Common Dashboard Link */}
+      {/* Dashboard Link */}
       <Link
         to="/"
-        className="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none"
+        className="d-flex align-items-center mb-3 text-light text-decoration-none"
+        style={{
+          color: "#fff",
+          padding: "10px",
+        }}
       >
         <FaHome className="me-2" />
         {!isCollapsed && <span className="fs-4">Dashboard</span>}
       </Link>
-      <hr />
+      <hr style={{ borderColor: "#fff" }} />
 
       <ul className="nav nav-pills flex-column mb-auto">
         {/* SuperAdmin-specific links */}
         {userInfo?.role === "superAdmin" && (
           <>
             <li className="nav-item">
-              <Link to="/report" className="nav-link text-dark">
-                <FaUsers className="me-2" />
+              <Link
+                to="/report"
+                className="nav-link text-light"
+                style={{
+                  padding: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <FaChartLine className="me-2 icon-blue" />
                 {!isCollapsed && <span>Report</span>}
               </Link>
             </li>
@@ -57,23 +87,51 @@ const Sidebar = () => {
         {/* User and Admin Links */}
         {userInfo?.role !== "superAdmin" && (
           <>
-            {/* Common links for both users and admins */}
+            {/* Requested page */}
             <li className="nav-item">
-              <Link to="/requested" className="nav-link text-dark">
-                <FaClipboardList className="me-2" />
+              <Link
+                to="/requested"
+                className="nav-link text-light"
+                style={{
+                  padding: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <FaClipboardList className="me-2 icon-blue" />
                 {!isCollapsed && <span>Requested</span>}
               </Link>
             </li>
+
+            {/* Sales page */}
             <li className="nav-item">
-              <Link to="/sales" className="nav-link text-dark">
-                <FaMoneyCheckAlt className="me-2" />
+              <Link
+                to="/sales"
+                className="nav-link text-light"
+                style={{
+                  padding: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <FaShoppingCart className="me-2 icon-yellow" />
                 {!isCollapsed && <span>Sales</span>}
               </Link>
             </li>
+
+            {/* Shop page */}
             <li className="nav-item">
-              <Link to="/inventory" className="nav-link text-dark">
-                <FaMoneyCheckAlt className="me-2" />
-                {!isCollapsed && <span>Inventory</span>}
+              <Link
+                to="/shop"
+                className="nav-link text-light"
+                style={{
+                  padding: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <FaStore className="me-2 icon-blue" />
+                {!isCollapsed && <span>Shop</span>}
               </Link>
             </li>
 
@@ -81,26 +139,76 @@ const Sidebar = () => {
             {userInfo?.role === "admin" && (
               <>
                 <li className="nav-item">
-                  <Link to="/add-products" className="nav-link text-dark">
-                    <FaBox className="me-2" />
+                  <Link
+                    to="/add-products"
+                    className="nav-link text-light"
+                    style={{
+                      padding: "10px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <FaBoxOpen className="me-2 icon-blue" />
                     {!isCollapsed && <span>Add Products</span>}
                   </Link>
                 </li>
+
                 <li className="nav-item">
-                  <Link to="/employees" className="nav-link text-dark">
-                    <FaUsers className="me-2" />
+                  <Link
+                    to="/store"
+                    className="nav-link text-light"
+                    style={{
+                      padding: "10px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <FaStore className="me-2 icon-yellow" />
+                    {!isCollapsed && <span>Store</span>}
+                  </Link>
+                </li>
+
+                <li className="nav-item">
+                  <Link
+                    to="/employees"
+                    className="nav-link text-light"
+                    style={{
+                      padding: "10px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <FaUserFriends className="me-2 icon-yellow" />
                     {!isCollapsed && <span>Employees</span>}
                   </Link>
                 </li>
+
                 <li className="nav-item">
-                  <Link to="/summary" className="nav-link text-dark">
-                    <FaUsers className="me-2" />
+                  <Link
+                    to="/summary"
+                    className="nav-link text-light"
+                    style={{
+                      padding: "10px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <FaClipboardList className="me-2 icon-blue" />
                     {!isCollapsed && <span>Summary</span>}
                   </Link>
                 </li>
+
                 <li className="nav-item">
-                  <Link to="/report" className="nav-link text-dark">
-                    <FaUsers className="me-2" />
+                  <Link
+                    to="/report"
+                    className="nav-link text-light"
+                    style={{
+                      padding: "10px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <FaChartLine className="me-2 icon-yellow" />
                     {!isCollapsed && <span>Report</span>}
                   </Link>
                 </li>
@@ -109,7 +217,7 @@ const Sidebar = () => {
           </>
         )}
       </ul>
-      <hr />
+      <hr style={{ borderColor: "#fff" }} />
     </div>
   );
 };

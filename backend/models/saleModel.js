@@ -11,6 +11,10 @@ const saleSchema = mongoose.Schema(
       type: String, // New field to store the product name
       required: true,
     },
+    batchNumber: {
+      type: String, // Store the batch number
+      required: true, // Batch number is now required
+    },
     quantitySold: {
       type: Number,
       required: true,

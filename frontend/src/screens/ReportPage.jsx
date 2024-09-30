@@ -4,6 +4,8 @@ import { useGetSalesByDateRangeQuery } from "../slices/salesApiSlice";
 import { FaDownload } from "react-icons/fa"; // Download icon for better UI
 import { saveAs } from "file-saver"; // To trigger file download
 import { useGetPurchasesByDateRangeQuery } from "../slices/purchaseApiSlice";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const ReportPage = () => {
   const [startDate, setStartDate] = useState(""); // Start date filter
@@ -16,6 +18,7 @@ const ReportPage = () => {
     { startDate, endDate },
     { skip: !applyFilters } // Skip query until filters are applied
   );
+  console.log(sales, "s");
 
   // Fetch purchases data (Debit) only after filters are applied
   const { data: purchases, refetch: refetchPurchases } =
@@ -23,6 +26,7 @@ const ReportPage = () => {
       { startDate, endDate },
       { skip: !applyFilters } // Skip query until filters are applied
     );
+  console.log(purchases, "p");
 
   // Calculate total Debit (Purchases)
   const totalDebit = useMemo(() => {
@@ -46,8 +50,8 @@ const ReportPage = () => {
 
   // Compute balance: Credit - Debit
   const balance = useMemo(
-    () => totalCredit - totalDebit,
-    [totalCredit, totalDebit]
+    () => totalDebit - totalCredit,
+    [totalDebit, totalCredit]
   );
 
   // Combine sales and purchases data for the table and sort by date (recent at bottom)
@@ -58,8 +62,9 @@ const ReportPage = () => {
       reportRows.push({
         date: new Date(purchase.purchaseDate).toISOString().split("T")[0],
         productName: purchase?.productName || "Unknown Product",
-        debit: purchase.buyingPrice * purchase.quantity,
-        credit: null,
+        amount: purchase.buyingPrice * purchase.quantity, // Amount for Debit
+        type: "DR", // Debit
+        user: purchase.userName,
       });
     });
 
@@ -67,8 +72,9 @@ const ReportPage = () => {
       reportRows.push({
         date: new Date(sale.saleDate).toISOString().split("T")[0],
         productName: sale?.productName || "Unknown Product",
-        debit: null,
-        credit: sale.sellingPrice * sale.quantitySold,
+        amount: sale.sellingPrice * sale.quantitySold, // Amount for Credit
+        type: "CR", // Credit
+        user: sale.userName,
       });
     });
 
@@ -76,37 +82,71 @@ const ReportPage = () => {
     return reportRows.sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [purchases, sales]);
 
-  // Convert report data to CSV format
-  const convertReportToCSV = () => {
-    const header = `"የአየር ጤና አንቀጸ ብርሃን ቅድስት ኪዳነምሕረት ቤተክርስቲያን የፍኖተ ጽድቅ ሰንበት ትምህርት ቤት ንዋየ ቅድሳት መሸጫ ሱቅ"\n"GL report"\n"Period: ${startDate} to ${endDate}"\n\nDate,Product Name,Debit (ETB),Credit (ETB)\n`;
+  const handleDownload = async (id, fileName) => {
+    try {
+      const input = document.getElementById(id);
+      if (!input) {
+        throw new Error(`Element with id ${id} not found`);
+      }
+      const currentDate = new Date();
+      const formattedDate = currentDate.toLocaleDateString();
+      // Convert the content of the table into a canvas image
+      const canvas = await html2canvas(input);
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgWidth = 210; // Full page width
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
 
-    const rows = reportData
-      .map((row) => [
-        row.date,
-        row.productName,
-        row.debit !== null ? row.debit : "",
-        row.credit !== null ? row.credit : "",
-      ])
-      .join("\n");
+      // Add the image from '/image' at the top (logo or other relevant image)
+      const logo = await loadImage("/image.png"); // Make sure to provide the correct path
+      pdf.addImage(logo, "PNG", 10, 10, 40, 40); // Add image at the top left
 
-    const balanceRow = `\n,Balance,${balance} ETB,\n`;
-    return header + rows + balanceRow;
+      // Add the period next to the image
+      pdf.setFontSize(12);
+      pdf.text(`Report Date: ${formattedDate}`, 55, 30);
+      pdf.text(`Period: ${startDate} to ${endDate}`, 55, 20);
+
+      // Add some margin between the header and the table content
+      pdf.setFontSize(16);
+      pdf.setFont("helvetica", "bold");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const text = "GL Report";
+      const textWidth = pdf.getTextWidth(text);
+      const textX = (pageWidth - textWidth) / 2;
+      pdf.text(text, textX, 60); // Add header
+
+      // Add the table content with padding/margin
+      pdf.addImage(imgData, "PNG", 10, 70, imgWidth - 20, imgHeight); // Add some margin around the table
+
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 10, position, imgWidth - 20, imgHeight); // Add margin for subsequent pages
+        heightLeft -= pageHeight;
+      }
+
+      // Save the PDF
+      pdf.save(fileName);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    }
   };
 
-  const handleDownload = () => {
-    const csvContent = convertReportToCSV();
-
-    // Add BOM (Byte Order Mark) for UTF-8 encoding to support Amharic characters
-    const utf8BOM = "\uFEFF";
-
-    // Create a Blob object with the CSV content and the BOM
-    const blob = new Blob([utf8BOM + csvContent], {
-      type: "text/csv;charset=utf-8;",
+  // Helper function to load the image
+  const loadImage = (src) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => resolve(img);
+      img.onerror = (err) => reject(err);
     });
-
-    // Trigger the download using file-saver
-    saveAs(blob, "የፍኖተ_ጽድቅ_ሱቅ_ሪፖርት.csv");
   };
+
   // Handle filter application
   const handleApplyFilters = () => {
     if (!startDate || !endDate) {
@@ -163,58 +203,74 @@ const ReportPage = () => {
       {/* Display Error Message */}
       {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
 
-      {/* Report Summary */}
-      <Card className="text-center mb-4 shadow">
-        <Card.Body>
-          <Card.Title>Report Summary</Card.Title>
-          <Card.Text>
-            <strong>Total Debit:</strong> {totalDebit} ETB <br />
-            <strong>Total Credit:</strong> {totalCredit} ETB <br />
-            <strong>Balance:</strong> {balance} ETB
-          </Card.Text>
-        </Card.Body>
-      </Card>
+      <Row>
+        {/* Report Summary */}
+        <Col md={9}>
+          <Card className="text-center mb-4 shadow">
+            <Card.Body>
+              <Card.Title>GL Report</Card.Title>
+              <Card.Text className="d-flex justify-content-around">
+                <strong>Total Debit:</strong> {totalDebit} ETB <br />
+                <strong>Total Credit:</strong> {totalCredit} ETB <br />
+                <strong>Balance:</strong> {balance} ETB
+              </Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
 
-      {/* Download Button */}
-      <div className="text-end mb-3">
-        <Button variant="success" onClick={handleDownload}>
-          <FaDownload /> Download Report
-        </Button>
-      </div>
+        {/* Download Button */}
+        <Col md={3}>
+          <div className="text-end mb-3">
+            <Button
+              variant="success"
+              onClick={() =>
+                handleDownload("report-table-section", "financial-report.pdf")
+              }
+            >
+              <FaDownload /> Download Report
+            </Button>
+          </div>
+        </Col>
+      </Row>
 
-      {/* Report Table */}
-      <Table striped bordered hover className="shadow-sm">
-        <thead className="table-dark">
-          <tr>
-            <th>Date</th>
-            <th>Product Name</th>
-            <th>Debit (ETB)</th>
-            <th>Credit (ETB)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {reportData.map((row, index) => (
-            <tr key={index}>
-              <td>{row.date}</td>
-              <td>{row.productName}</td>
-              <td>{row.debit !== null ? row.debit : ""}</td>
-              <td>{row.credit !== null ? row.credit : ""}</td>
+      <div id="report-table-section">
+        {/* Report Table */}
+        <Table striped bordered hover className="shadow-sm">
+          <thead className="table-dark">
+            <tr>
+              <th>Date</th>
+              <th>Product Name</th>
+              <th>Amount (ETB)</th>
+              <th>DR/CR</th>
+              <th>User</th>
             </tr>
-          ))}
+          </thead>
+          <tbody>
+            {reportData.map((row, index) => (
+              <tr key={index}>
+                <td>{row.date}</td>
+                <td>{row.productName}</td>
+                <td>{row.amount}</td>
+                <td>{row.type}</td>
+                <td>{row.user}</td>
+              </tr>
+            ))}
 
-          {/* Add balance row at the bottom */}
-          <tr>
-            <td></td>
-            <td>
-              <strong>Balance</strong>
-            </td>
-            <td>
-              <strong>{balance} ETB</strong>
-            </td>
-            <td></td>
-          </tr>
-        </tbody>
-      </Table>
+            {/* Add balance row at the bottom */}
+            <tr>
+              <td></td>
+              <td>
+                <strong>Balance</strong>
+              </td>
+              <td>
+                <strong>{balance} ETB</strong>
+              </td>
+              <td></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </Table>
+      </div>
     </div>
   );
 };

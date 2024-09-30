@@ -5,7 +5,7 @@ import {
   useDeleteSaleMutation,
   useEditSaleMutation,
 } from "../slices/salesApiSlice";
-import { useGetProductsQuery } from "../slices/productApiSlice";
+import { useGetShopProductsQuery } from "../slices/shopApiSlice"; // Fetch products from the shop
 import { useSelector } from "react-redux";
 import {
   Container,
@@ -27,8 +27,8 @@ const SalesPage = () => {
   );
   const [errorMessage, setErrorMessage] = useState(""); // State to store error message
 
-  // Fetch all products
-  const { data: products } = useGetProductsQuery();
+  // Fetch all products from the shop
+  const { data: shopProducts } = useGetShopProductsQuery();
 
   // Fetch sales for the specific date
   const { data: sales, refetch } = useGetSalesByDateQuery(saleDate);
@@ -41,9 +41,16 @@ const SalesPage = () => {
   const handleAddSale = async () => {
     setErrorMessage(""); // Reset error message before the action
     if (selectedProduct && quantity > 0) {
+      if (quantity > selectedProduct.quantity) {
+        setErrorMessage(
+          `Cannot sell more than available stock. Available: ${selectedProduct.quantity}`
+        );
+        return;
+      }
+
       try {
         await addSale({
-          productId: selectedProduct._id, // Ensure _id exists and is valid
+          shopProductId: selectedProduct._id, // Ensure _id exists and is valid
           quantitySold: quantity, // Ensure this is a valid number
           userName: userInfo?.name,
         }).unwrap();
@@ -142,8 +149,10 @@ const SalesPage = () => {
                     onChange={(e) => {
                       const searchValue = e.target.value.toLowerCase();
                       setSelectedProduct(
-                        products?.find((product) =>
-                          product.name.toLowerCase().startsWith(searchValue)
+                        shopProducts?.allProducts?.find((product) =>
+                          product.productName
+                            .toLowerCase()
+                            .startsWith(searchValue)
                         )
                       );
                     }}
@@ -154,7 +163,8 @@ const SalesPage = () => {
                 {selectedProduct && (
                   <div className="selected-product-info">
                     <p>
-                      <strong>Selected Product:</strong> {selectedProduct?.name}
+                      <strong>Selected Product:</strong>{" "}
+                      {selectedProduct?.productName}
                     </p>
                     <p>
                       <strong>Selling Price:</strong>{" "}
@@ -209,8 +219,9 @@ const SalesPage = () => {
               <tr>
                 <th>Date</th>
                 <th>Product Name</th>
-                <th>Selling Price</th>
                 <th>Quantity Sold</th>
+                <th>Selling Price</th>
+
                 {userInfo?.role === "admin" && <th>Actions</th>}
               </tr>
             </thead>
@@ -219,8 +230,9 @@ const SalesPage = () => {
                 <tr key={sale._id}>
                   <td>{new Date(saleDate).toISOString().split("T")[0]}</td>
                   <td>{sale?.productName}</td>
-                  <td>{sale?.sellingPrice} ETB</td>
                   <td>{sale?.quantitySold}</td>
+                  <td>{sale?.sellingPrice} ETB</td>
+
                   {userInfo?.role === "admin" && (
                     <td>
                       <Button

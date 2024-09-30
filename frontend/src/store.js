@@ -6,6 +6,7 @@ import { requestedProductApiSlice } from "./slices/requestedProductApiSlice";
 import { salesApiSlice } from "./slices/salesApiSlice"; // Import salesApiSlice
 import { summaryApiSlice } from "./slices/summaryApiSlice";
 import { purchaseApiSlice } from "./slices/purchaseApiSlice";
+import { shopApi } from "./slices/shopApiSlice";
 
 const store = configureStore({
   reducer: {
@@ -16,6 +17,7 @@ const store = configureStore({
     [salesApiSlice.reducerPath]: salesApiSlice.reducer,
     [summaryApiSlice.reducerPath]: summaryApiSlice.reducer,
     [purchaseApiSlice.reducerPath]: purchaseApiSlice.reducer,
+    [shopApi.reducerPath]: shopApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -24,7 +26,8 @@ const store = configureStore({
       requestedProductApiSlice.middleware,
       salesApiSlice.middleware,
       summaryApiSlice.middleware,
-      purchaseApiSlice.middleware
+      purchaseApiSlice.middleware,
+      shopApi.middleware
     ),
   devTools: true,
 });
